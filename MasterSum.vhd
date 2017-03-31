@@ -24,16 +24,15 @@ architecture arch_master_sum of master_sum is
 
     type t_state is (waiting, waiting_for_slave, first, downtime, second);
     signal state : t_state := waiting;
-    signal sending : std_logic_vector(7 downto 0);
-    signal receiving : std_logic_vector(7 downto 0);
-    signal comp_busy : std_logic;
+    signal din : std_logic_vector(7 downto 0);
+    signal dout : std_logic_vector(7 downto 0);
+    signal comp_busy : std_logic;
     signal comp_en : std_logic;
 begin
-    comp1 : er_1octet port map ( clk, reset, comp_en, miso, comp_busy , sclk, mosi, receiving, sending );
+    comp1 : er_1octet port map ( clk, reset, comp_en, miso, comp_busy , sclk, mosi, din, dout );
 
     main : process(clk, reset)
-        variable timer_slave : natural := 5;
-        variable timer_down : natural := 2;
+        variable timer : natural := 5;
         variable buffer1 : std_logic_vector(7 downto 0);
         variable buffer2 : std_logic_vector(7 downto 0);
     begin
@@ -42,6 +41,7 @@ begin
             ss <= '1';
             carry <= '0';
             s <= (others => '0');
+				state <= waiting;
         elsif rising_edge(clk) then
             case state is
             when waiting =>
@@ -50,35 +50,41 @@ begin
                     buffer1 := e1;
                     buffer2 := e2;
                     ss <= '0';
-                    timer_slave := 5;
+                    timer := 5;
                     state <= waiting_for_slave;
                 end if;
             when waiting_for_slave =>
-                timer_slave := timer_slave - 1;
-                if timer_slave = 1 then
-                    comp_en <= '1';
-                    sending <= buffer1;
-                    state <= first;
+				    if timer = 1 then
+					     din <= buffer1;
+						  comp_en <= '1';
+						  timer := timer - 1;
+				    elsif timer = 0 then
+						  state <= first;
+					 else
+					     timer := timer - 1;
                 end if;
             when first =>
+				    comp_en <= '0';
                 if comp_busy = '0' then
-                    s <= receiving;
+                    s <= dout;
                     state <= downtime;
-                    comp_en <= '0';
-                    timer_down <= 2;
+                    timer := 2;
                 end if;
             when downtime =>
-                timer_down <= timer_down - 1;
-                if timer_down = 1 then
-                    sending <= buffer2;
-                    comp_en <= '1';
+				    if timer = 1 then
+					     din <= buffer2;
+						  comp_en <= '1';
+						  timer := timer - 1;
+                elsif timer = 0 then
                     state <= second;
+					 else
+					     timer := timer - 1;
                 end if;
             when second =>
+				    comp_en <= '0';
                 if comp_busy = '0' then
-                    carry <= receiving(0);
+                    carry <= dout(0);
                     state <= waiting;
-                    comp_en <= '0';
                     busy <= '0';
                     ss <= '1';
                 end if;

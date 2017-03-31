@@ -34,9 +34,9 @@ ARCHITECTURE behavior OF TestSum IS
         sclk : in std_logic;
         mosi : in std_logic;
         miso : out std_logic;
-        ss : in std_logic;
+        ss : in std_logic
     );
-    END COMPONENT
+    END COMPONENT;
 
     -- Inputs
     signal clk : std_logic := '0';
@@ -46,9 +46,9 @@ ARCHITECTURE behavior OF TestSum IS
     signal e2 : std_logic_vector(7 downto 0) := (others => '0');
 
     -- Internal signals
-    signal miso : std_logic;
-    signal mosi : std_logic;
-    signal sclk : std_logic;
+    signal miso : std_logic := '0';
+    signal mosi : std_logic;
+    signal sclk : std_logic;
     signal ss : std_logic;
 
     -- Outputs
@@ -95,20 +95,19 @@ BEGIN
 
     -- Stimulus process
     stim_proc: process
-        variable vect : std_logic_vector(7 downto 1) := (others => 0);
+        variable vect : std_logic_vector(7 downto 0) := (others => '0');
     begin
         -- hold reset state for 100 ns.
         wait for 100 ns;
         
-        reset := '1';
+        reset <= '1';
         wait for clk_period*10;
-
         for i in 0 to 7 loop
-            vect(i) := '1'
+            vect(i) := '1';
             e1 <= vect;
             e2 <= (7 => '1', others => '0');
             en <= '1';
-            wait for clk_period*1.5;
+            wait for clk_period*2;
             en <= '0';
             wait until busy = '0';
         end loop;  
